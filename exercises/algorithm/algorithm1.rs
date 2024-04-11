@@ -2,13 +2,12 @@
     single linked list merge
     This problem requires you to merge two ordered singly linked lists into one ordered singly linked list
 */
-// I AM NOT DONE
 
 use std::fmt::{self, Display, Formatter};
 use std::ptr::NonNull;
 use std::vec::*;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, PartialOrd)]
 struct Node<T> {
     val: T,
     next: Option<NonNull<Node<T>>>,
@@ -26,13 +25,19 @@ struct LinkedList<T> {
     end: Option<NonNull<Node<T>>>,
 }
 
-impl<T> Default for LinkedList<T> {
+impl<T> Default for LinkedList<T>
+where
+    T: PartialOrd + Clone,
+{
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<T> LinkedList<T> {
+impl<T> LinkedList<T>
+where
+    T: PartialOrd + Clone,
+{
     pub fn new() -> Self {
         Self {
             length: 0,
@@ -66,13 +71,48 @@ impl<T> LinkedList<T> {
             },
         }
     }
-    pub fn merge(list_a: LinkedList<T>, list_b: LinkedList<T>) -> Self {
-        //TODO
-        Self {
-            length: 0,
+    pub fn merge(mut list_a: LinkedList<T>, mut list_b: LinkedList<T>) -> Self {
+        let mut head = Self {
+            length: list_a.length + list_b.length,
             start: None,
             end: None,
+        };
+
+        // let (mut a, mut b) = (list_a.start, list_b.start);
+
+        let current = &mut head;
+
+        while let (Some(l), Some(r)) = (list_a.start, list_b.start) {
+            let node_ptr =
+                if unsafe { (*l.as_ptr()).val.clone() } < unsafe { (*r.as_ptr()).val.clone() } {
+                    let ret = l.clone();
+                    list_a.start = unsafe { (*l.as_ref()).next };
+                    Some(ret)
+                } else {
+                    let ret = r.clone();
+                    list_b.start = unsafe { (*r.as_ref()).next };
+                    Some(ret)
+                };
+
+            match current.end {
+                None => current.start = node_ptr,
+                Some(end_ptr) => unsafe { (*end_ptr.as_ptr()).next = node_ptr },
+            }
+            current.end = node_ptr;
         }
+
+        if let Some(end_ptr) = current.end {
+            unsafe { (*end_ptr.as_ptr()).next = list_a.start.or(list_b.start) }
+        }
+
+        current.end = if list_a.start.is_some() {
+            list_a.end
+        } else {
+            list_b.end
+        };
+
+        //TODO
+        head
     }
 }
 
